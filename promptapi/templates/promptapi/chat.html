@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bible Quiz Chat</title>
+    <style>
+        .chat-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+        .assistant-message {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Bible Quiz Chat</h1>
+        
+        <!-- Chat Form -->
+        <form method="POST" action="{% url 'prompt' %}" onsubmit="showLoading()">
+            {% csrf_token %}
+            <input type="text" name="message" placeholder="Ask your Bible question..." value="{{ message }}" style="width: 80%; padding: 10px;">
+            <button type="submit">Send</button>
+        </form>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="message" style="display: none; color: blue;">
+            Loading...
+        </div>
+
+        <!-- Display Error if any -->
+        {% if error %}
+        <div class="message" style="color: red;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Display Chat Messages -->
+        {% if message %}
+        <div class="message user-message">
+            <strong>You:</strong> {{ message }}
+        </div>
+        {% endif %}
+        
+        {% if response %}
+        <div class="message assistant-message">
+            <strong>Assistant:</strong> {{ response }}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

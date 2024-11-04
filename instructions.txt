@@ -1,0 +1,179 @@
+re-write this view using the following strategies;
+
+upon request, check that the vector store with the name "Vector store for Bible-qiuz-v2" exits, if not the create a new vector with that name. 
+
+example code for listing all existing vector stores
+vector_stores = client.beta.vector_stores.list()
+sample returned data:
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "vs_abc123",
+      "object": "vector_store",
+      "created_at": 1699061776,
+      "name": "Support FAQ",
+      "bytes": 139920,
+      "file_counts": {
+        "in_progress": 0,
+        "completed": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "total": 3
+      }
+    },
+  
+    }
+  ],
+  "first_id": "vs_abc123",
+  "last_id": "vs_abc456",
+  "has_more": false
+}
+
+
+example code for creating vector store using vector store using OpenAI API endpoint(POST: https://api.openai.com/v1/vector_stores)
+from openai import OpenAI
+client = OpenAI()
+vector_store = client.beta.vector_stores.create(
+  name="Support FAQ"
+)
+
+sample returned data:
+{
+  "id": "vs_abc123",
+  "object": "vector_store",
+  "created_at": 1699061776,
+  "name": "Support FAQ",
+  "bytes": 139920,
+  "file_counts": {
+    "in_progress": 0,
+    "completed": 3,
+    "failed": 0,
+    "cancelled": 0,
+    "total": 3
+  }
+}
+
+if a vector store exists or a new one is created then upload the file and attach it to the vector store. (POST: https://api.openai.com/v1/vector_stores)
+
+code to upload file:
+client.files.create(
+  file=open("bible.pdf", "rb"),
+  purpose="assistants"
+)
+
+response
+{
+  "id": "file-abc123",
+  "object": "file",
+  "bytes": 120000,
+  "created_at": 1677610602,
+  "filename": "bible.pdf",
+  "purpose": "assistants",
+}
+
+code to attach file to vectore store: (POST: post https://api.openai.com/v1/vector_stores/{vector_store_id}/files)
+vector_store_file = client.beta.vector_stores.files.create(
+  vector_store_id="vs_abc123",
+  file_id="file-abc123"
+)
+
+response:
+{
+  "id": "file-abc123",
+  "object": "vector_store.file",
+  "created_at": 1699061776,
+  "usage_bytes": 1234,
+  "vector_store_id": "vs_abcd",
+  "status": "completed",
+  "last_error": null
+}
+
+code to retrive vectore store file with the file id: (GET: https://api.openai.com/v1/vector_stores/{vector_store_id}/files/{file_id})
+from openai import OpenAI
+client = OpenAI()
+
+vector_store_file = client.beta.vector_stores.files.retrieve(
+  vector_store_id="vs_abc123",
+  file_id="file-abc123"
+)
+
+response:
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "file-abc123",
+      "object": "vector_store.file",
+      "created_at": 1699061776,
+      "vector_store_id": "vs_abc123"
+    },
+    {
+      "id": "file-abc456",
+      "object": "vector_store.file",
+      "created_at": 1699061776,
+      "vector_store_id": "vs_abc123"
+    }
+  ],
+  "first_id": "file-abc123",
+  "last_id": "file-abc456",
+  "has_more": false
+}
+
+
+Then create an assistant with the vector store file id attached to it.
+
+code for creating an assistant: (POST: https://api.openai.com/v1/assistants)
+my_assistant = client.beta.assistants.create(
+    instructions="you are a helpful bible quiz expert, with an extend knowledge of the KJV Bible, you will answer questions about the Bible from the attached storage",
+    name="Bible Quiz Expert",
+    tools=[{"type": "code_interpreter"}, {"type": "file_search"}],
+    model="gpt-4-turbo-2024-04-09",
+)
+
+response:
+{
+  "id": "asst_abc123",
+  "object": "assistant",
+  "created_at": 1698984975,
+  "name": "Math Tutor",
+  "description": null,
+  "model": "gpt-4o",
+  "instructions": "you are a helpful bible quiz expert, with an extend knowledge of the KJV Bible, you will answer questions about the Bible from the attached storage",
+  "tools": [
+    {
+      "type": "code_interpreter"
+    }
+  ],
+  "metadata": {},
+  "top_p": 1.0,
+  "temperature": 1.0,
+  "response_format": "auto"
+}
+
+
+then create a thread and add the user's question to the thread, including the file id.
+
+code for creating a thread: (POST: https://api.openai.com/v1/threads)
+thread = client.beta.threads.create()
+
+response:
+{
+  "id": "thread_abc123",
+  "object": "thread",
+  "created_at": 1699012949,
+  "metadata": {},
+  "tool_resources": {}
+}
+
+
+Then create a message and add it to the thread, including the file id. get the message from the post request
+code for creating a message: (POST: https://api.openai.com/v1/threads/{thread_id}/messages)
+
+response:
+thread_message = client.beta.threads.messages.create(
+  "thread_abc123",
+  role="user",
+  content="",
+)
+
